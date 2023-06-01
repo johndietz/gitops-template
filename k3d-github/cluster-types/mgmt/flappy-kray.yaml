@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flappy-kray
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: '100'
+spec:
+  destination:
+    name: ''
+    namespace: kubefirst
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: ''
+    repoURL: 'https://charts.kubefirst.com'
+    targetRevision: 0.1.0-rc.d890a7a
+    chart: flappy-kray
+    helm:
+      values: |
+        image:
+          repository: public.ecr.aws/kubefirst/flappy-kray
+        ingress:
+          enabled: false
+  project: default
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flappy-kray
+  namespace: kubefirst
+  annotations:
+    argocd.argoproj.io/sync-wave: '10'
+spec:
+  routes:
+    - kind: Rule
+      match: Host(`flappy-kray.kubefirst.dev`)
+      services:
+        - name: flappy-kray
+          port: 80
+  tls:
+    secretName: flappy-kray-tls
